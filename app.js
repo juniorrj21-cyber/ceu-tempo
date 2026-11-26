@@ -2,8 +2,9 @@
 (function () {
 'use strict';
 
-const VERSION = '1.1';
+const VERSION = '1.2';
 const CHANGELOG = [
+  ['1.2', '26/11/2026', 'Cartão de detalhes do vento agora mostra a frase completa: "Vento de 14 km/h vindo do sudeste", com as rajadas embaixo.'],
   ['1.1', '26/11/2026', 'Corrigido: ao trocar de cidade ou de °C/°F logo após abrir, o app podia mostrar o nome novo com a temperatura antiga. Localização por IP agora usa GeoJS e ipwho.is (o serviço anterior não respondia). Direção do vento por extenso: "Vento de 14 km/h vindo do sudeste".'],
   ['1.0', '26/11/2026', 'Primeira versão: previsão real (Open-Meteo), busca de cidades, várias cidades salvas, localização, gráfico de 24 horas, 7 dias, detalhes (sensação, umidade, vento, UV, pressão, sol), °C/°F, tema claro/escuro/automático, funciona offline com os últimos dados.']
 ];
@@ -197,12 +198,12 @@ function render(c, d, ts, stale) {
   const tiles = [
     ['Sensação térmica', deg(cu.apparent_temperature), '', cu.apparent_temperature > cu.temperature_2m + 1 ? 'Parece mais quente' : cu.apparent_temperature < cu.temperature_2m - 1 ? 'Parece mais frio' : 'Igual à real'],
     ['Umidade', Math.round(cu.relative_humidity_2m) + '%', '', cu.relative_humidity_2m < 30 ? 'Ar seco' : cu.relative_humidity_2m > 80 ? 'Ar muito úmido' : 'Confortável'],
-    ['Vento', Math.round(cu.wind_speed_10m), 'km/h', 'Vindo do ' + compassName(cu.wind_direction_10m) + ' · rajadas de ' + Math.round(cu.wind_gusts_10m) + ' km/h'],
+    ['Vento', 'Vento de ' + Math.round(cu.wind_speed_10m) + ' km/h vindo do ' + compassName(cu.wind_direction_10m), '', 'Rajadas de ' + Math.round(cu.wind_gusts_10m) + ' km/h', 'txt'],
     ['Índice UV máx.', uvMax != null ? Math.round(uvMax) : '—', '', uvMax != null ? uvLabel(uvMax) : ''],
     ['Pressão', Math.round(cu.pressure_msl), 'hPa', vis != null ? 'Visibilidade ' + (vis >= 10000 ? '10+ km' : (vis / 1000).toFixed(1).replace('.', ',') + ' km') : ''],
     ['Nascer e pôr do sol', hhmm(dy.sunrise[0]), '· ' + hhmm(dy.sunset[0]), 'Chuva hoje: ' + (dy.precipitation_sum[0] || 0).toFixed(1).replace('.', ',') + ' mm']
   ];
-  $('details').innerHTML = tiles.map(([k, v, s, x]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${esc(v)}${s ? `<small>${esc(s)}</small>` : ''}</div><div class="x">${esc(x)}</div></div>`).join('');
+  $('details').innerHTML = tiles.map(([k, v, s, x, cls]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v${cls ? ' ' + cls : ''}">${esc(v)}${s ? `<small>${esc(s)}</small>` : ''}</div><div class="x">${esc(x)}</div></div>`).join('');
 
   $('skeleton').hidden = true;
   $('content').hidden = false;
