@@ -2,8 +2,9 @@
 (function () {
 'use strict';
 
-const VERSION = '1.0';
+const VERSION = '1.1';
 const CHANGELOG = [
+  ['1.1', '26/11/2026', 'Corrigido: ao trocar de cidade ou de °C/°F logo após abrir, o app podia mostrar o nome novo com a temperatura antiga. Localização por IP agora usa GeoJS e ipwho.is (o serviço anterior não respondia). Direção do vento por extenso: "Vento de 14 km/h vindo do sudeste".'],
   ['1.0', '26/11/2026', 'Primeira versão: previsão real (Open-Meteo), busca de cidades, várias cidades salvas, localização, gráfico de 24 horas, 7 dias, detalhes (sensação, umidade, vento, UV, pressão, sol), °C/°F, tema claro/escuro/automático, funciona offline com os últimos dados.']
 ];
 
@@ -23,7 +24,7 @@ let unit = store.get('unit', 'c');
 let theme = store.get('theme', 'auto');
 let current = null;      // dados da cidade selecionada
 const mini = {};         // temperatura atual de cada cidade da lista
-let loading = false;
+let loadSeq = 0;
 
 /* ---------- condições e ícones ---------- */
 const WMO = {
@@ -99,6 +100,7 @@ const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const WDL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const dateOf = (s) => { const [y, m, d] = s.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d); };
+function compassName(d) { return ['norte', 'nordeste', 'leste', 'sudeste', 'sul', 'sudoeste', 'oeste', 'noroeste'][Math.round(((d % 360) / 45)) % 8]; }
 function compass(d) { return ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(((d % 360) / 45)) % 8]; }
 function uvLabel(u) { return u < 3 ? 'Baixo' : u < 6 ? 'Moderado' : u < 8 ? 'Alto' : u < 11 ? 'Muito alto' : 'Extremo'; }
 const place = (c) => [c.admin, c.country].filter((x, i, a) => x && a.indexOf(x) === i).join(', ');
@@ -112,11 +114,11 @@ async function load(force) {
   const cacheKey = 'cache.' + c.id + '.' + unit;
   const cached = store.get(cacheKey, null);
   if (cached && !current) render(c, cached.data, cached.ts, true);
-  if (loading) return;
-  loading = true;
+  const seq = ++loadSeq;
   $('refreshBtn').classList.add('spin');
   try {
     const data = await getJSON(forecastURL(c));
+    if (seq !== loadSeq) return;
     const ts = Date.now();
     store.set(cacheKey, { data, ts });
     hideNotice();
@@ -125,12 +127,12 @@ async function load(force) {
     renderCities();
     window.__ceu = { status: 'ok', city: c.name, temp: data.current.temperature_2m, days: data.daily.time.length, hours: data.hourly.time.length };
   } catch (e) {
+    if (seq !== loadSeq) return;
     if (cached) { render(c, cached.data, cached.ts, true); showNotice('Sem conexão com o serviço de previsão. Mostrando os últimos dados salvos.', true); }
     else { showNotice('Não consegui buscar a previsão (' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) + '). Verifique a internet.', true); $('skeleton').hidden = true; }
     window.__ceu = { status: 'error', error: String(e && e.message || e), cached: !!cached };
   } finally {
-    loading = false;
-    $('refreshBtn').classList.remove('spin');
+    if (seq === loadSeq) $('refreshBtn').classList.remove('spin');
   }
   void force;
 }
@@ -160,7 +162,7 @@ function render(c, d, ts, stale) {
       <div class="temp num">${deg(cu.temperature_2m)}</div>
       <div class="cond">${esc(label)}</div>
       <div class="mm">Máx ${deg(dy.temperature_2m_max[0])} · Mín ${deg(dy.temperature_2m_min[0])} · Sensação ${deg(cu.apparent_temperature)}</div>
-      <div class="chips"><span>Umidade ${Math.round(cu.relative_humidity_2m)}%</span><span>Vento ${Math.round(cu.wind_speed_10m)} km/h ${compass(cu.wind_direction_10m)}</span>${uvNow != null ? `<span>UV ${Math.round(uvNow)}</span>` : ''}</div>
+      <div class="chips"><span>Umidade ${Math.round(cu.relative_humidity_2m)}%</span><span>Vento de ${Math.round(cu.wind_speed_10m)} km/h vindo do ${compassName(cu.wind_direction_10m)}</span>${uvNow != null ? `<span>UV ${Math.round(uvNow)}</span>` : ''}</div>
     </div>
     ${icon(cu.weather_code, cu.is_day, 150, 'big')}`;
 
@@ -195,7 +197,7 @@ function render(c, d, ts, stale) {
   const tiles = [
     ['Sensação térmica', deg(cu.apparent_temperature), '', cu.apparent_temperature > cu.temperature_2m + 1 ? 'Parece mais quente' : cu.apparent_temperature < cu.temperature_2m - 1 ? 'Parece mais frio' : 'Igual à real'],
     ['Umidade', Math.round(cu.relative_humidity_2m) + '%', '', cu.relative_humidity_2m < 30 ? 'Ar seco' : cu.relative_humidity_2m > 80 ? 'Ar muito úmido' : 'Confortável'],
-    ['Vento', Math.round(cu.wind_speed_10m), 'km/h ' + compass(cu.wind_direction_10m), 'Rajadas de ' + Math.round(cu.wind_gusts_10m) + ' km/h'],
+    ['Vento', Math.round(cu.wind_speed_10m), 'km/h', 'Vindo do ' + compassName(cu.wind_direction_10m) + ' · rajadas de ' + Math.round(cu.wind_gusts_10m) + ' km/h'],
     ['Índice UV máx.', uvMax != null ? Math.round(uvMax) : '—', '', uvMax != null ? uvLabel(uvMax) : ''],
     ['Pressão', Math.round(cu.pressure_msl), 'hPa', vis != null ? 'Visibilidade ' + (vis >= 10000 ? '10+ km' : (vis / 1000).toFixed(1).replace('.', ',') + ' km') : ''],
     ['Nascer e pôr do sol', hhmm(dy.sunrise[0]), '· ' + hhmm(dy.sunset[0]), 'Chuva hoje: ' + (dy.precipitation_sum[0] || 0).toFixed(1).replace('.', ',') + ' mm']
@@ -270,11 +272,13 @@ function addCity(c) {
   select(c.id);
 }
 async function refreshMinis() {
+  const u = unit;
   await Promise.all(cities.filter((c) => c.id !== selId).map(async (c) => {
     try {
       const p = new URLSearchParams({ latitude: c.lat, longitude: c.lon, current: 'temperature_2m,weather_code,is_day', timezone: 'auto' });
       if (unit === 'f') p.set('temperature_unit', 'fahrenheit');
       const d = await getJSON('https://api.open-meteo.com/v1/forecast?' + p, 10000);
+      if (u !== unit) return;
       mini[c.id] = { t: d.current.temperature_2m, code: d.current.weather_code, day: d.current.is_day };
     } catch { /* ignora */ }
   }));
@@ -316,9 +320,17 @@ $('locBtn').addEventListener('click', async () => {
     }
     let name = 'Minha localização', admin = '', country = '';
     if (!c) {
-      const ip = await getJSON('https://ipapi.co/json/', 8000);
-      if (ip.latitude == null) throw new Error('sem localização');
-      c = { lat: ip.latitude, lon: ip.longitude }; name = ip.city || name; admin = ip.region || ''; country = ip.country_name || '';
+      let ip = null;
+      try {
+        const g = await getJSON('https://get.geojs.io/v1/ip/geo.json', 8000);
+        if (g.latitude) ip = { lat: parseFloat(g.latitude), lon: parseFloat(g.longitude), city: g.city, region: g.region, country: g.country };
+      } catch { /* tenta o próximo */ }
+      if (!ip) {
+        const w = await getJSON('https://ipwho.is/', 8000);
+        if (w.success !== false && w.latitude != null) ip = { lat: +w.latitude, lon: +w.longitude, city: w.city, region: w.region, country: w.country };
+      }
+      if (!ip || isNaN(ip.lat)) throw new Error('sem localização');
+      c = { lat: ip.lat, lon: ip.lon }; name = ip.city || name; admin = ip.region || ''; country = ip.country || '';
     }
     const loc = { id: 'loc', name, admin, country, lat: c.lat, lon: c.lon };
     cities = cities.some((x) => x.id === 'loc') ? cities.map((x) => x.id === 'loc' ? loc : x) : [loc, ...cities];
@@ -338,7 +350,7 @@ function applyPrefs() {
 }
 document.querySelectorAll('[data-unit]').forEach((b) => b.addEventListener('click', () => {
   if (unit === b.dataset.unit) return;
-  unit = b.dataset.unit; store.set('unit', unit); applyPrefs(); current = null; load(); refreshMinis();
+  unit = b.dataset.unit; store.set('unit', unit); Object.keys(mini).forEach((k) => delete mini[k]); renderCities(); applyPrefs(); current = null; load(); refreshMinis();
 }));
 document.querySelectorAll('[data-theme-btn]').forEach((b) => b.addEventListener('click', () => { theme = b.dataset.themeBtn; store.set('theme', theme); applyPrefs(); drawChart(); }));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
@@ -365,5 +377,5 @@ document.addEventListener('visibilitychange', () => {
 });
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-window.CeuTest = { search: searchCities, version: VERSION };
+window.CeuTest = { search: searchCities, add: addCity, version: VERSION };
 })();
