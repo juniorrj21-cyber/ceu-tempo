@@ -1,4 +1,4 @@
-const CACHE = 'ceu-v1.3';
+const CACHE = 'ceu-v1.4';
 const FILES = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
   'fonts/inter-latin-400-normal.woff2', 'fonts/inter-latin-500-normal.woff2', 'fonts/inter-latin-600-normal.woff2',
   'fonts/space-grotesk-latin-300-normal.woff2', 'fonts/space-grotesk-latin-500-normal.woff2'];
