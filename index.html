@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1726">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.open-meteo.com https://geocoding-api.open-meteo.com https://ipapi.co; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'">
+<title>Céu — Previsão do tempo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="side" id="side" aria-label="Cidades">
+    <div class="brand"><span id="brandIcon"></span>Céu</div>
+    <form class="search" id="searchForm" autocomplete="off" role="search">
+      <label for="q">Buscar cidade</label>
+      <input id="q" type="search" placeholder="Digite uma cidade…" aria-controls="results">
+      <ul class="results" id="results" role="listbox" hidden></ul>
+    </form>
+    <button class="btn wide" id="locBtn" type="button"><span id="locIcon"></span>Usar minha localização</button>
+    <div class="label">Minhas cidades</div>
+    <ul class="cities" id="cities"></ul>
+    <div class="side-foot">
+      <div class="seg" role="group" aria-label="Unidade">
+        <button type="button" data-unit="c">°C</button><button type="button" data-unit="f">°F</button>
+      </div>
+      <div class="seg" role="group" aria-label="Tema">
+        <button type="button" data-theme-btn="auto">Auto</button><button type="button" data-theme-btn="light">Claro</button><button type="button" data-theme-btn="dark">Escuro</button>
+      </div>
+      <button class="link" id="aboutBtn" type="button">Sobre e versões · v<span class="ver"></span></button>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <header class="top">
+      <button class="icon-btn menu" id="menuBtn" type="button" aria-label="Abrir lista de cidades"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="place">
+        <h1 id="cityName">Carregando…</h1>
+        <div class="sub" id="citySub"></div>
+      </div>
+      <button class="icon-btn" id="refreshBtn" type="button" aria-label="Atualizar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+    </header>
+
+    <div class="notice" id="notice" hidden></div>
+
+    <div class="grid" id="content" hidden>
+      <div class="col">
+        <section class="hero" id="hero"></section>
+        <section class="card">
+          <div class="card-head"><h2>Próximas 24 horas</h2><span class="hint" id="rainHint"></span></div>
+          <div class="chart" id="chart"></div>
+          <div class="hours" id="hours"></div>
+        </section>
+      </div>
+      <div class="col">
+        <section class="card">
+          <div class="card-head"><h2>Próximos 7 dias</h2></div>
+          <ul class="days" id="days"></ul>
+        </section>
+        <section class="details" id="details"></section>
+      </div>
+    </div>
+
+    <div class="skeleton" id="skeleton"><div></div><div></div><div></div></div>
+    <footer class="credit">Dados: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0)</footer>
+  </main>
+</div>
+
+<dialog id="about">
+  <form method="dialog">
+    <h2>Céu · Previsão do tempo</h2>
+    <p class="sub">Versão <span class="ver"></span> · dados de previsão da Open-Meteo, sem cadastro e sem chave.</p>
+    <h3>Histórico de versões</h3>
+    <ul id="changelog"></ul>
+    <button class="btn" value="close">Fechar</button>
+  </form>
+</dialog>
+<script src="app.js"></script>
+</body>
+</html>
